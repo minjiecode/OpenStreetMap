@@ -13,12 +13,13 @@ problemchars = re.compile(r'[=\+/&<>;\'"\?%#$@\,\. \t\r\n]')
 CREATED = [ "version", "changeset", "timestamp", "user", "uid"]
 FILE = "beijing_china.osm"
 
-#clean/reformat the phone value
+
 def clean_phone(number):
-	numberlist = re.findall("\d",number)
-	new_number = "".join(numberlist)
-	if len(new_number) == 8:
-		new_number = "010" + new_number
+    """Clean/reformat the phone value."""
+    numberlist = re.findall("\d",number)
+    new_number = "".join(numberlist)
+    if len(new_number) == 8:
+    	new_number = "010" + new_number
 	new_number = new_number[-11:]
 	if new_number.startswith('1'):
 		new_number = "+86-" + new_number
@@ -26,8 +27,19 @@ def clean_phone(number):
 		new_number = "+86-10-" + new_number[-8:]
 	return new_number
 
+def clean_capacity(capacity):
+    """Correct and returned the capacity data with uniform format."""
+    if not re.search('\d', capacity):
+        return capacity
+    cap = re.findall(r'[-+]?\d*\.\d+|\d+',capacity)
+    new_c = "".join(cap)
+    if "." in new_c:
+        new_c = 10000 * float(new_c)
+    return int(new_c)
+
 
 def shape_element(element):
+    """Return the data as a dictionary after cleaning."""
     node = {}
     if element.tag == "node" or element.tag == "way" :
         # Geo Data
@@ -55,9 +67,15 @@ def shape_element(element):
                 has_address = True
                 addr_list = tag.get('k').split(":")
                 address["".join(addr_list[1:])] = tag.get('v')
+            # clean the phone data
             elif 'phone' in tag.get('k'):
-            	# clean the phone data
             	node[tag.get('k')] = clean_phone(tag.get('v'))
+            # convert the facility type
+            elif 'social_facility' in tag.get('k'):
+                node[tag.get('k')] = "应急避难场所"
+            # clean the capacity data
+            elif 'capacity' in tag.get('k'):
+                node[tag.get('k')] = clean_capacity(tag.get('v'))
             else:
                 node[tag.get('k')] = tag.get('v')
         node_refs = []
@@ -77,8 +95,8 @@ def shape_element(element):
         return None
 
 
-
 def process_map(file_in, pretty = False):
+    """Mapping the xml file to json."""
     # You do not need to change this file
     file_out = "{0}.json".format(file_in)
     data = []

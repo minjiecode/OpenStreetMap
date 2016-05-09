@@ -10,7 +10,7 @@ We directly read zip file (since unncompressed file can be huge).
 
 # Add all the documents to our MongoDB collection "maps"
 def add_data(db):
-    f = open('sample_bj.osm.json', 'r')
+    f = open('beijing_china.osm.json', 'r')
     # Go through each line in our JSON file and add it as document to MongoDB
     # collection "maps"
     for line in f:
@@ -28,7 +28,7 @@ def get_db():
     client = MongoClient('localhost:27017')
     
     # 'examples' here is the database name. It will be created if it does not exist.
-    db = client.bjsample
+    db = client.beijing
     return db
 
 if __name__ == "__main__":    # For local use

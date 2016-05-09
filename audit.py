@@ -36,6 +36,7 @@ mapping = { "St": "Street",
 
 
 def audit_street_type(street_types, street_name):
+    """Return problematic street name in a set"""
     m = street_type_re.search(street_name)
     if m:
         street_type = m.group()
@@ -44,12 +45,16 @@ def audit_street_type(street_types, street_name):
 
 
 def audit_chinese_keys(chinese_keys, key, value):
+    """Return problematic keys with Chinese Characters"""
     chinese_keys[key].add(value)
 
 def is_street_name(elem):
+    """Return true if there is street name key"""
     return (elem.attrib['k'] == "addr:street")
 
+
 def is_chinese(elem):
+    """Return true if there is Chinese characters"""
     key = elem.attrib['k']
     for n in key:
         try:
@@ -63,15 +68,19 @@ def is_chinese(elem):
     return False
 
 def is_phone(elem):
+    """Return true if it is Chinese characters"""
     return (elem.attrib['k'] == "phone")
 
 def is_postcode(elem):
+    """Return true if is is a postcode"""
     return (elem.attrib['k'] == "addr:postcode")
 
 def is_capacity(elem):
-    return (elem.attrib['k'] == "capacity")
+    """Return true if it is capacity key"""
+    return ("capacity" in elem.attrib['k'])
 
 def audit(osmfile):
+    """Audit OSM file"""
     osm_file = open(osmfile, "r")
     street_types = defaultdict(set)
     chinese_keys = defaultdict(set)
@@ -81,31 +90,33 @@ def audit(osmfile):
     for event, elem in ET.iterparse(osm_file, events=("start",)):
         if elem.tag == "node" or elem.tag == "way":
             for tag in elem.iter("tag"):
-                # # audit chinese characters as keys
-                # if is_chinese(tag):
-                #     audit_chinese_keys(chinese_keys, tag.attrib['k'], tag.attrib['v'])
-                # #audit street name
-                # if is_street_name(tag):
-                #     audit_street_type(street_types, tag.attrib['v'])
-                # # audit phone number
-                # if is_phone(tag):
-                #     phone_numbers.append(tag.attrib['v'])
-                # # audit postcode
-                # if is_postcode(tag):
-                #     post_code.append(tag.attrib['v'])
+                # audit chinese characters as keys
+                if is_chinese(tag):
+                    audit_chinese_keys(chinese_keys, tag.attrib['k'], tag.attrib['v'])
+                #audit street name
+                if is_street_name(tag):
+                    audit_street_type(street_types, tag.attrib['v'])
+                # audit phone number
+                if is_phone(tag):
+                    phone_numbers.append(tag.attrib['v'])
+                # audit postcode
+                if is_postcode(tag):
+                    post_code.append(tag.attrib['v'])
+                # audit capacity
                 if is_capacity(tag):
                     capacity_data.append(tag.attrib['v'])
 
     osm_file.close()
-    # return street_types, chinese_keys, phone_numbers,post_code
-    return capacity_data
+    return street_types, chinese_keys, phone_numbers,post_code, capacity_data
 
 
 def test():
-    # st_types,chinese_keys, phone_numbers, post_code = audit(OSMFILE)
-    capacity = audit(OSMFILE)
-    # pprint.pprint(dict(st_types))
-    # pprint.pprint(dict(chinese_keys))
+    """Print out the problematic keys and values"""
+    st_types,chinese_keys, phone_numbers, post_code, capacity = audit(OSMFILE)
+    pprint.pprint(dict(st_types))
+    pprint.pprint(dict(chinese_keys))
+    print phone_numbers
+    print post_code
     print capacity
 
 
