@@ -361,17 +361,76 @@ tag k="addr:housenumber" v="甲1"/&gt;
 </div>
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h3 id="1.5.-Overall">1.5. Overall<a class="anchor-link" href="#1.5.-Overall">&#182;</a></h3><h4 id="1.5.1.-Validity-and-Accuracy">1.5.1. Validity and Accuracy<a class="anchor-link" href="#1.5.1.-Validity-and-Accuracy">&#182;</a></h4><p>Even though it is out of the scope of this project to validate all the data obtained from the OpenStreetMap and locate all the mistakes, I was able to discover many problems relating to the validity and accuracy of the data from simple auditing for the data format and content. For example, by auditing the postcode, I quickly discovered that one phone number is misused as a postcode. More examples as follows, using district name as street name and postcode as housenumber.</p>
+<h3 id="1.5-Different-Format-in-Phone-number-and-Capacity">1.5 Different Format in Phone number and Capacity<a class="anchor-link" href="#1.5-Different-Format-in-Phone-number-and-Capacity">&#182;</a></h3><h4 id="1.5.1.-Phone-number">1.5.1. Phone number<a class="anchor-link" href="#1.5.1.-Phone-number">&#182;</a></h4><p>Phone number in the file are recored in different way. Some of them have area code and international code, some does not, and the prefix are also in different formatted in different manner and some even have mistake in it. 
+For example:</p>
+<blockquote><p>'+86-10-60712288'
+'861064057111'
+'+86 1360 1135725'
+'+86 10 63016688'
+'62555813'
+'01064185590'
+'+86-010-67814533'
+'(8610)13717888828'
+'+86(010)62591264'</p>
+</blockquote>
+<p>I reformat the phone number to be:</p>
+<blockquote><p>'+86-10-60712288' &lt;- for landline <br>
+'+86-13601135725' &lt;- for mobile phone</p>
+</blockquote>
+<p>Code:</p>
+
+<pre><code>`def clean_phone(number):
+    """Clean/reformat the phone value."""
+    numberlist = re.findall("\d",number)
+    new_number = "".join(numberlist)
+    if len(new_number) == 8:
+        new_number = "010" + new_number
+    new_number = new_number[-11:]
+    if new_number.startswith('1'):
+        new_number = "+86-" + new_number
+    else:
+        new_number = "+86-10-" + new_number[-8:]
+    return new_number`
+
+</code></pre>
+<h4 id="1.5.2.-Capacity">1.5.2. Capacity<a class="anchor-link" href="#1.5.2.-Capacity">&#182;</a></h4><p>Capacity of a place are also recorded by users in variaty of ways. For example:</p>
+<blockquote><p>'3.5',
+'13,700 people',
+'14352 people',
+'80000'</p>
+</blockquote>
+<p>The reason why there is float in the data is that some users input the data in different scale, the number should be multiplied by 10000 to be consistent with others.
+Besides, the character and ',' in the value also need to be removed.<br>
+I reformatted the data to only keep the number with correct scale.</p>
+<p>Code:</p>
+
+<pre><code>`def clean_capacity(capacity):
+    """Correct and returned the capacity data with uniform format."""
+    if not re.search('\d', capacity):
+        return capacity
+    cap = re.findall(r'[-+]?\d*\.\d+|\d+',capacity)
+    new_c = "".join(cap)
+    if "." in new_c:
+        new_c = 10000 * float(new_c)
+    return int(new_c)`</code></pre>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h3 id="1.6.-Overall">1.6. Overall<a class="anchor-link" href="#1.6.-Overall">&#182;</a></h3><h4 id="1.6.1.-Validity-and-Accuracy">1.6.1. Validity and Accuracy<a class="anchor-link" href="#1.6.1.-Validity-and-Accuracy">&#182;</a></h4><p>Even though it is out of the scope of this project to validate all the data obtained from the OpenStreetMap and locate all the mistakes, I was able to discover many problems relating to the validity and accuracy of the data from simple auditing for the data format and content. For example, by auditing the postcode, I quickly discovered that one phone number is misused as a postcode. More examples as follows, using district name as street name and postcode as housenumber.</p>
 
 <pre><code>    &lt;tag k="addr:street" v="Chao Yang"/&gt;
     &lt;tag k="addr:housenumber" v="100600"/&gt;
 
 </code></pre>
 <p>And there are also error like <code>&lt;tag k="phone" v="03126550752"/&gt;</code> where the value is likely to be "13126550752" according to the chinese phone number format.</p>
-<h4 id="1.5.2.-Completeness">1.5.2. Completeness<a class="anchor-link" href="#1.5.2.-Completeness">&#182;</a></h4><p>The map data of Beijing I obtained is far from complete. There are many places that I know in Beijing, including my home haven't been added to the document yet. And for the existing nodes and ways, may of them lack information, for example, the proper Chinese name, the use of the facility, and so on.</p>
-<h4 id="1.5.3.-Consistency-and-Uniformity">1.5.3. Consistency and Uniformity<a class="anchor-link" href="#1.5.3.-Consistency-and-Uniformity">&#182;</a></h4><p>The data consistency and Uniformity is a disaster. First, there is the language problem. Second, as it is a opensource project, users create their own tags and use different keys to label the same thing. Third, the same type of key value are formatted in different ways. For example, here are a snippet of the phone data. We can that they are formatted in different ways. Before store the data into MongoDB, I reformmated the phone data so that they are in the same format.</p>
-<blockquote><p>'+86-10-60712288', '68716285;62555813', '+86 1360 1135725 / +86 10 5135 7212', '+86 10 63016688', '+86-10-64169999', '+86 1064167544', '861064057111', '010-84477300', '01064177646', '01059716901', '01066511600', '+86-010-67814533', '01064185590', '+86-010-67876799', '+86 15611952928', '+86-010-67850505', '+86 10 64068858'</p>
-</blockquote>
+<h4 id="1.6.2.-Completeness">1.6.2. Completeness<a class="anchor-link" href="#1.6.2.-Completeness">&#182;</a></h4><p>The map data of Beijing I obtained is far from complete. There are many places that I know in Beijing, including my home haven't been added to the document yet. And for the existing nodes and ways, may of them lack information, for example, the proper Chinese name, the use of the facility, and so on.</p>
+<h4 id="1.6.3.-Consistency-and-Uniformity">1.6.3. Consistency and Uniformity<a class="anchor-link" href="#1.6.3.-Consistency-and-Uniformity">&#182;</a></h4><p>The data consistency and Uniformity is a disaster. First, there is the language problem. Second, as it is a opensource project, users create their own tags and use different keys to label the same thing. Third, the same type of key value are formatted in different ways. Aside from the problems mentioned above, I also found people using different language or words to indicate the same thing, for example, people use several ways to say "emergency shelters" in chinese and english, I converted all of them to "应急避难场所“.</p>
 
 </div>
 </div>
